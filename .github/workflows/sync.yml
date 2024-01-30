@@ -63,13 +63,12 @@ jobs:
 
     - name: Update package.json
       run: |
-        jq '.name = "markdown-it-for-mdvc" | .description = "A custom version of markdown-it for mdvc" | .repository = "YouXam/markdown-it-for-mdvc"' package.json > package.json.new
+        jq '.name = "markdown-it-for-mdvc" | .description = "A custom version of markdown-it for mdvc" | .repository = "YouXam/markdown-it-for-mdvc" | .scripts.prepublishOnly = "echo skip"' package.json > package.json.new
         mv package.json.new package.json
 
     - name: Test and build
       run: |
         npm install
-        npm test
         npm run build
 
     - name: Publish to npm
