@@ -6,6 +6,8 @@ on:
   push:
     branches:
       - master
+  manual:
+    - workflow_dispatch
 
 jobs:
   sync-and-publish:
