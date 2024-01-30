@@ -43,7 +43,22 @@ jobs:
 
     - name: Commit changes
       run: |
-        git commit -am "Merge upstream changes"
+        git add -A
+        set +e  # Disable error stopping
+        git commit -m "Merge upstream changes"
+        commit_status=$?
+        set -e  # Re-enable error stopping
+        if [ $commit_status -ne 0 ]; then
+          git_status=$(git status)
+          if [[ $git_status == *"nothing to commit"* ]]; then
+            echo "No changes to commit. Exiting with success."
+            echo "publish"
+            # exit 0
+          else
+            echo "Error during commit. Exiting with failure."
+            exit 1
+          fi
+        fi
         git push
 
     - name: Update package.json
