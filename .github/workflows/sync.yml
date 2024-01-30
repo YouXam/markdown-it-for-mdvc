@@ -27,6 +27,18 @@ jobs:
     - name: Fetch updates from upstream
       run: git fetch upstream
 
+    - name: Check if version updated
+      id: version_check
+      run: |
+        VERSION_MAIN=$(git show main:package.json | jq -r '.version')
+        VERSION_HEAD=$(jq -r '.version' package.json)
+        if [ "$VERSION_MAIN" = "$VERSION_HEAD" ]; then
+          echo "Version has not been updated in package.json"
+          echo "::set-output name=version_updated::false"
+        else
+          echo "::set-output name=version_updated::true"
+        fi
+
     - name: Merge updates
       run: git merge upstream/master
       continue-on-error: true
@@ -52,7 +64,6 @@ jobs:
           git_status=$(git status)
           if [[ $git_status == *"nothing to commit"* ]]; then
             echo "No changes to commit. Exiting with success."
-            echo "publish"
             # exit 0
           else
             echo "Error during commit. Exiting with failure."
@@ -62,22 +73,28 @@ jobs:
         git push
 
     - name: Update package.json
+      if: steps.version_check.outputs.version_updated == 'true'
       run: |
         jq '.name = "markdown-it-for-mdvc" | .description = "A custom version of markdown-it for mdvc" | .repository = "YouXam/markdown-it-for-mdvc" | .scripts.prepublishOnly = "echo skip"' package.json > package.json.new
         mv package.json.new package.json
 
     - name: Test and build
+      if: steps.version_check.outputs.version_updated == 'true'
       run: |
         npm install
         npm run build
 
     - name: Setup Node.js
+      if: steps.version_check.outputs.version_updated == 'true'
       uses: actions/setup-node@v3
       with:
         node-version: '20.x'
         registry-url: 'https://registry.npmjs.org'
 
-    - run: npm ci
-    - run: npm publish
+    - name: Publish to NPM
+      if: steps.version_check.outputs.version_updated == 'true'
+      run: |
+        npm ci
+        npm publish
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
