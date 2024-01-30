@@ -1,0 +1,63 @@
+name: Sync Fork and Publish
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Runs at midnight every day
+  push:
+    branches:
+      - master
+
+jobs:
+  sync-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Configure Git
+      run: |
+        git config --global user.name 'GitHub Actions'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+    - name: Add upstream remote
+      run: git remote add upstream https://github.com/markdown-it/markdown-it.git
+
+    - name: Fetch updates from upstream
+      run: git fetch upstream
+
+    - name: Merge updates
+      run: git merge upstream/master
+      continue-on-error: true
+
+    - name: Check for conflicts
+      run: |
+        if git diff --name-only --diff-filter=U | grep -Ev '^README\.md$|^.github/' ; then
+          echo "Conflicts found outside of allowed files. Exiting."
+          exit 1
+        fi
+
+    - name: Resolve specific conflicts
+      run: git checkout --ours README.md .github/*
+
+    - name: Commit changes
+      run: |
+        git commit -am "Merge upstream changes"
+        git push
+
+    - name: Update package.json
+      run: |
+        jq '.name = "markdown-it-for-mdvc" | .description = "A custom version of markdown-it for mdvc" | .repository = "YouXam/markdown-it-for-mdvc"' package.json > package.json.new
+        mv package.json.new package.json
+
+    - name: Test and build
+      run: |
+        npm install
+        npm test
+        npm run build
+
+    - name: Publish to npm
+      run: npm publish
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
