@@ -34,10 +34,10 @@ jobs:
         VERSION_HEAD=$(curl -s https://registry.npmjs.org/markdown-it-for-mdvc/latest | jq -r .version)
         if [ "$VERSION_MAIN" = "$VERSION_HEAD" ]; then
           echo "Version has not been updated"
-          echo "name=version_updated::false" >> $GITHUB_OUTPUT
+          echo "version_updated=false" >> $GITHUB_OUTPUT
         else
           echo "Version has been updated"
-          echo "name=version_updated::true" >> $GITHUB_OUTPUT
+          echo "version_updated=true" >> $GITHUB_OUTPUT
         fi
 
     - name: Merge updates
